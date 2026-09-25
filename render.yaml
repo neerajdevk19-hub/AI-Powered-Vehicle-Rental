@@ -20,7 +20,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npm run start:prod
+    startCommand: npx prisma db push && npm run prisma:seed && npm run start:prod
     envVars:
       - key: PORT
         value: 3000
