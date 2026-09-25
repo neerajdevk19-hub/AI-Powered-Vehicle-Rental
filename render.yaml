@@ -3,8 +3,9 @@ services:
   - type: web
     name: driveai-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
         fromService:
@@ -17,8 +18,9 @@ services:
     name: driveai-backend
     env: node
     plan: free
-    buildCommand: cd backend && npm install && npx prisma generate && npm run build
-    startCommand: cd backend && npm run start:prod
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod
     envVars:
       - key: PORT
         value: 3000
@@ -41,11 +43,9 @@ services:
     name: driveai-python-service
     env: python
     plan: free
-    buildCommand: cd python-service && pip install -r requirements.txt
-    startCommand: cd python-service && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHONPATH
-        value: ./python-service
+    rootDir: python-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 databases:
   # Managed PostgreSQL Database (Free)
