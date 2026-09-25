@@ -54,6 +54,13 @@ def calculate_recommendation_score(v: CandidateVehicle, req: RecommendRequest) -
 def read_root():
     return {"status": "ok", "service": "DriveAI Python Vehicle Recommendation Service"}
 
+@app.on_event("startup")
+def startup_event():
+    try:
+        get_policy_index()._ready()
+    except Exception as e:
+        print(f"Policy index warmup warning: {e}")
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}

@@ -31,12 +31,25 @@ class PolicyIndex:
         self.lock = threading.RLock()
 
     def _ready(self):
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         if self.encoder is None:
             from sentence_transformers import SentenceTransformer
             self.encoder = SentenceTransformer(MODEL_NAME, device='cpu', cache_folder=str(DATA_DIR / 'models'))
         if self.client is None:
             url = os.getenv('QDRANT_URL')
-            self.client = QdrantClient(url=url, timeout=10) if url else QdrantClient(path=str(DATA_DIR / 'qdrant'))
+            if url and 'qdrant:6333' not in url:
+                try:
+                    self.client = QdrantClient(url=url, timeout=10)
+                    self.client.get_collections()
+                except Exception:
+                    self.client = None
+            if self.client is None:
+                try:
+                    qdrant_path = DATA_DIR / 'qdrant'
+                    qdrant_path.mkdir(parents=True, exist_ok=True)
+                    self.client = QdrantClient(path=str(qdrant_path))
+                except Exception:
+                    self.client = QdrantClient(location=":memory:")
 
     def ingest(self, documents: list[dict]):
         import json
