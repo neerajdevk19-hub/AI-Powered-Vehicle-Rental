@@ -1,5 +1,5 @@
 services:
-  # 1. React Frontend (Web Service / Static Site)
+  # 1. React Frontend (Static Site)
   - type: web
     name: driveai-frontend
     env: static
@@ -10,7 +10,7 @@ services:
         fromService:
           type: web
           name: driveai-backend
-          property: url
+          property: host
 
   # 2. NestJS Backend API Service
   - type: web
@@ -29,7 +29,7 @@ services:
         fromService:
           type: web
           name: driveai-python-service
-          property: url
+          property: host
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL
@@ -49,5 +49,4 @@ databases:
   # Managed PostgreSQL Database
   - name: driveai-db
     databaseName: vehicledb
-    user: postgres
     plan: free
