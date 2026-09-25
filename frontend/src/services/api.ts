@@ -10,6 +10,9 @@ const getApiBaseUrl = () => {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`;
   }
+  if (!url.includes('.')) {
+    url = `${url}.onrender.com`;
+  }
   return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
