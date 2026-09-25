@@ -16,7 +16,17 @@ export interface PolicyChunkResult {
 @Injectable()
 export class RagService {
   private readonly logger = new Logger(RagService.name);
-  private readonly pythonUrl = process.env.PYTHON_SERVICE_URL || 'http://localhost:8002';
+  private get pythonUrl(): string {
+    const raw = process.env.PYTHON_SERVICE_URL || 'http://localhost:8002';
+    let url = raw.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    if (!url.includes('.') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+      url = `${url}.onrender.com`;
+    }
+    return url.endsWith('/') ? url.slice(0, -1) : url;
+  }
   private indexedHash = '';
   private corpusId = '';
   constructor(private readonly prisma: PrismaService) {}
