@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: driveai_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vehicledb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: driveai_qdrant
+    restart: always
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  python-service:
+    build:
+      context: ./python-service
+      dockerfile: Dockerfile
+    container_name: driveai_python_service
+    restart: always
+    ports:
+      - "8002:8000"
+    environment:
+      QDRANT_URL: "http://qdrant:6333"
+      AI_DATA_DIR: "/app/data"
+    volumes:
+      - embedding_data:/app/data
+    depends_on:
+      - qdrant
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: driveai_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/vehicledb?schema=public"
+      PORT: 3000
+      PYTHON_SERVICE_URL: "http://python-service:8000"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "gemini-3.6-flash"
+      QDRANT_URL: "http://qdrant:6333"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      python-service:
+        condition: service_started
+      qdrant:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: driveai_frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  embedding_data:

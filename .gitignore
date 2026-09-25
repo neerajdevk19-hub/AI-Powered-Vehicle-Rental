@@ -1,0 +1,11 @@
+.env
+**/.env
+**/node_modules/
+**/dist/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/coverage/
+python-service/data/
+**/test-results/
+**/playwright-report/

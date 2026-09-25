@@ -1,0 +1,72 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  createdAt    DateTime      @default(now())
+  reservations Reservation[]
+}
+
+model Vehicle {
+  id              String        @id @default(uuid())
+  name            String
+  brand           String
+  description     String?
+  type            String        // SUV, Sedan, Hatchback, Bike
+  transmission    String        // Automatic, Manual
+  fuelType        String        // Petrol, Diesel, Electric, Hybrid
+  seatingCapacity Int           @default(5)
+  pricePerDay     Float
+  securityDeposit Float         @default(2000)
+  status          String        @default("available") // available, reserved, maintenance
+  latitude        Float
+  longitude       Float
+  location        String        // e.g. "Vijay Nagar, Indore"
+  imageUrl        String?
+  rating          Float         @default(4.8)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  reservations    Reservation[]
+  gpsLocations    GpsLocation[]
+}
+
+model Reservation {
+  id         String   @id @default(uuid())
+  userId     String
+  vehicleId  String
+  startTime  DateTime
+  endTime    DateTime
+  totalPrice Float
+  status     String   @default("CONFIRMED") // CONFIRMED, CANCELLED, COMPLETED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model GpsLocation {
+  id         String   @id @default(uuid())
+  vehicleId  String
+  latitude   Float
+  longitude  Float
+  recordedAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model RentalPolicy {
+  id        String   @id @default(uuid())
+  title     String
+  category  String   // Cancellation, Late Return, Insurance, Security Deposit, Fuel Policy
+  content   String
+  createdAt DateTime @default(now())
+}
