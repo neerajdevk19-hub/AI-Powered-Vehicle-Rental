@@ -1,9 +1,8 @@
 services:
-  # 1. React Frontend (Static Site - Free)
+  # 1. React Frontend (Static Site)
   - type: web
     name: driveai-frontend
     env: static
-    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     envVars:
@@ -13,11 +12,10 @@ services:
           name: driveai-backend
           property: host
 
-  # 2. NestJS Backend API Service (Free)
+  # 2. NestJS Backend API Service
   - type: web
     name: driveai-backend
     env: docker
-    plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     envVars:
@@ -37,11 +35,10 @@ services:
       - key: GEMINI_MODEL
         value: gemini-3.6-flash
 
-  # 3. Python AI Microservice (FastAPI - Free)
+  # 3. Python AI Microservice (FastAPI)
   - type: web
     name: driveai-python-service
     env: docker
-    plan: free
     dockerfilePath: ./python-service/Dockerfile
     dockerContext: ./python-service
     envVars:
@@ -49,7 +46,7 @@ services:
         value: 8000
 
 databases:
-  # Managed PostgreSQL Database (Free)
+  # Managed PostgreSQL Database
   - name: driveai-db
     databaseName: vehicledb
     plan: free
