@@ -178,7 +178,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
     }
 
     // Split and format bullet lists and long policies or vehicle lists nicely
-    const cleanContent = content
+    const cleanContent = (content || '')
       .replace(/\s+-\s+/g, '\n• ')
       .replace(/\n-\s+/g, '\n• ');
 
