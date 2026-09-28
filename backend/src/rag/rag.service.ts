@@ -50,10 +50,62 @@ export class RagService {
       const { data } = await axios.post(`${this.pythonUrl}/rag/search`, { query, corpusId }, { timeout: 15000 });
       if (!Array.isArray(data.sources)) throw new Error('Invalid retrieval response');
       return data.sources;
-    } catch {
+    } catch (error) {
       this.indexedHash = '';
-      this.logger.warn('Policy vector retrieval unavailable; no keyword fallback is used.');
+      this.logger.warn(`Policy vector retrieval unavailable (${error instanceof Error ? error.message : error}); using database keyword search fallback.`);
+      return this.fallbackDbSearch(query);
+    }
+  }
+
+  private async fallbackDbSearch(query: string): Promise<PolicyChunkResult[]> {
+    const policies = await this.prisma.rentalPolicy.findMany();
+    if (!policies.length) {
       throw new ServiceUnavailableException('Rental policy could not be verified. Please try again later.');
     }
+
+    const lowerQuery = query.toLowerCase();
+    const terms = lowerQuery.split(/\s+/).filter((t) => t.length > 2);
+
+    const scored = policies
+      .map((p) => {
+        let score = 0;
+        const lowerTitle = p.title.toLowerCase();
+        const lowerCategory = p.category.toLowerCase();
+        const lowerContent = p.content.toLowerCase();
+
+        for (const term of terms) {
+          if (lowerCategory.includes(term)) score += 5;
+          if (lowerTitle.includes(term)) score += 3;
+          if (lowerContent.includes(term)) score += 1;
+        }
+
+        return {
+          id: p.id,
+          category: p.category,
+          title: p.title,
+          content: p.content,
+          source: `rental-policy:${p.id}`,
+          chunkIndex: 0,
+          score: Math.min(1.0, score / 10),
+        };
+      })
+      .filter((p) => p.score > 0);
+
+    scored.sort((a, b) => b.score - a.score);
+
+    if (scored.length > 0) {
+      return scored.slice(0, 3);
+    }
+
+    // Fallback: return top policies if query is broad or keyword didn't match exact text
+    return policies.slice(0, 2).map((p) => ({
+      id: p.id,
+      category: p.category,
+      title: p.title,
+      content: p.content,
+      source: `rental-policy:${p.id}`,
+      chunkIndex: 0,
+      score: 0.5,
+    }));
   }
 }

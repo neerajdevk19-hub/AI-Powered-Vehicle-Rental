@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import axios from 'axios';
 
 export interface RecommendCandidate {
@@ -25,8 +25,10 @@ export interface RecommendResponse {
 }
 
 @Injectable()
-export class PythonClientService {
+export class PythonClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PythonClientService.name);
+  private keepAliveTimer: any = null;
+
   private get pythonUrl(): string {
     const raw = process.env.PYTHON_SERVICE_URL || 'http://localhost:8002';
     let url = raw.trim();
@@ -39,23 +41,43 @@ export class PythonClientService {
     return url.endsWith('/') ? url.slice(0, -1) : url;
   }
 
+  onModuleInit() {
+    this.pingPythonService();
+    // Keep Python microservice awake by pinging /health every 5 minutes (300000 ms)
+    this.keepAliveTimer = setInterval(() => this.pingPythonService(), 300000);
+  }
+
+  onModuleDestroy() {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+    }
+  }
+
+  private async pingPythonService(): Promise<void> {
+    try {
+      await axios.get(`${this.pythonUrl}/health`, { timeout: 10000 });
+      this.logger.log(`Python microservice keep-alive ping successful (${this.pythonUrl}).`);
+    } catch (error) {
+      this.logger.warn(`Python microservice keep-alive ping failed (${this.pythonUrl}): ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
   async rankVehicles(payload: RecommendRequest): Promise<{ rankedVehicleIds: string[]; scores: Record<string, number> }> {
     try {
       const response = await axios.post<RecommendResponse>(
         `${this.pythonUrl}/recommend`,
         payload,
-        { timeout: 3000 },
+        { timeout: 8000 },
       );
       return response.data;
     } catch (error) {
       this.logger.warn(
-        `Python recommendation service unavailable at ${this.pythonUrl}. Falling back to default distance-based ranking. Error: ${error.message}`,
+        `Python recommendation service unavailable at ${this.pythonUrl}. Falling back to default distance-based ranking. Error: ${error instanceof Error ? error.message : error}`,
       );
 
       // Fallback scoring logic inside NestJS
       const fallbackScores: Record<string, number> = {};
       const sorted = [...payload.candidates].sort((a, b) => {
-        // Simple score formula: rating * 2 - (distance * 0.1) - (price * 0.001)
         const scoreA = a.rating * 2 - a.distanceFromUser * 0.1 - a.pricePerDay * 0.001;
         const scoreB = b.rating * 2 - b.distanceFromUser * 0.1 - b.pricePerDay * 0.001;
         fallbackScores[a.id] = Math.round(scoreA * 100) / 100;

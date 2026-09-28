@@ -70,8 +70,8 @@ describe('VehiclesService', () => {
       'veh-001',
       3000,
       2000,
-      '2026-09-25T10:00:00Z',
-      '2026-09-27T10:00:00Z',
+      '2026-10-01T10:00:00Z',
+      '2026-10-03T10:00:00Z',
     );
     expect(price.days).toBe(2);
     expect(price.basePrice).toBe(6000);
